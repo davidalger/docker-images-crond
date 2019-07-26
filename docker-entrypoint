@@ -1,0 +1,17 @@
+#!/bin/sh
+set -euo pipefail
+
+CROND_ENV_FILTER="${CROND_ENV_FILTER:-"^EXPORT_"}"
+ENVIRONMENT_VARS="$(printenv | (grep -E "${CROND_ENV_FILTER}" || true))"
+
+if [[ "${CROND_ENV_FILTER}" = "^EXPORT_" ]]; then
+    ENVIRONMENT_VARS="$(echo "${ENVIRONMENT_VARS}" | sed 's/^EXPORT_//g')"
+fi
+
+## Write with export to file which can be sourced in crontab entries
+echo "${ENVIRONMENT_VARS}" | sed 's/^\(.+\)$/export \1/g' >> /etc/environment
+
+## Add environment variables to the 0hourly cron which runs anacron for daily/weekly/monthly jobs
+sed -i 's/^PATH=\(.*\)$/PATH=\1\n'"$(echo "${ENVIRONMENT_VARS}")"'/g' /etc/cron.d/0hourly
+
+exec "$@"

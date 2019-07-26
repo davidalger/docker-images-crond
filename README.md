@@ -25,6 +25,7 @@ This image is intended to have crontab configurations added by mounting files in
         -v /var/lib/crond/backup-data:/etc/cron.daily/backup-data \
         -v /data/${DIRECTORY_NAME}:/data/${DIRECTORY_NAME} \
         -v /backup/${DIRECTORY_NAME}:/backup/${DIRECTORY_NAME} \
+        -e CROND_ENV_FILTER=^BACKUP_ \
         -e BACKUP_FILE_SOURCE=/data/${DIRECTORY_NAME} \
         -e BACKUP_FILE_TARGET=/backup/${DIRECTORY_NAME} \
         -e BACKUP_FILE_PREFIX=${DIRECTORY_NAME}-data \
@@ -36,7 +37,7 @@ This image is intended to have crontab configurations added by mounting files in
 
 `/var/lib/crond/backup-data.sh`
 
-    #!/usr/bin/env bash
+    #!/bin/bash
     set -eu
 
     function :: {
@@ -50,11 +51,14 @@ This image is intended to have crontab configurations added by mounting files in
     BACKUP_FILE_PREFIX="${BACKUP_FILE_PREFIX:-"data-archive"}"
     BACKUP_FILE_OUTPUT="${BACKUP_FILE_TARGET}/${BACKUP_FILE_PREFIX}-$(date +%F).tgz"
 
-    :: Starting backup for "${BACKUP_FILE_SOURCE}"
-    tar -czf "${BACKUP_FILE_OUTPUT}" -C "${BACKUP_FILE_SOURCE}" .
-    chmod 600 "${BACKUP_FILE_OUTPUT}"
+    ## Wrap execution to redirect output to PID 1 procs so it will turn up in container logs
+    {
+        :: Starting backup for "${BACKUP_FILE_SOURCE}"
+        tar -czf "${BACKUP_FILE_OUTPUT}" -C "${BACKUP_FILE_SOURCE}" .
+        chmod 600 "${BACKUP_FILE_OUTPUT}"
 
-    :: Cleaning up files older than 30 days in "${BACKUP_FILE_TARGET}"
-    find "${BACKUP_FILE_TARGET}" -type f -mtime +30 | sort | xargs -tI FILE rm -v FILE
+        :: Cleaning up files older than 30 days in "${BACKUP_FILE_TARGET}"
+        find "${BACKUP_FILE_TARGET}" -type f -mtime +30 | sort | xargs -tI FILE rm -v FILE
 
-    :: Completed backup for "${BACKUP_FILE_SOURCE}"
+        :: Completed backup for "${BACKUP_FILE_SOURCE}"
+    } 1>/proc/1/fd/1 2>/proc/1/fd/2
