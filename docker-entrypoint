@@ -9,7 +9,7 @@ if [[ "${CROND_ENV_FILTER}" = "^EXPORT_" ]]; then
 fi
 
 ## Write with export to file which can be sourced in crontab entries
-echo "${ENVIRONMENT_VARS}" | sed 's/^\(.+\)$/export \1/g' >> /etc/environment
+echo "${ENVIRONMENT_VARS}" | sed -E 's/^(.+)$/export \1/g' >> /etc/environment
 
 ## Add environment variables to the 0hourly cron which runs anacron for daily/weekly/monthly jobs
 ENVIRONMENT_VARS_ESCAPED="$(echo "${ENVIRONMENT_VARS}" | sed -e 's/[\/&]/\\&/g' | sed ':begin;$!N;s/\n/\\n/;tbegin')"
