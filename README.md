@@ -35,7 +35,7 @@ This image is intended to have crontab configurations added by mounting files in
     WantedBy=multi-user.target
 
 
-`/var/lib/crond/backup-data.sh`
+`/var/lib/crond/backup-data`
 
     #!/bin/bash
     set -eu
@@ -54,7 +54,10 @@ This image is intended to have crontab configurations added by mounting files in
     ## Wrap execution to redirect output to PID 1 procs so it will turn up in container logs
     {
         :: Starting backup for "${BACKUP_FILE_SOURCE}"
-        tar -czf "${BACKUP_FILE_OUTPUT}" -C "${BACKUP_FILE_SOURCE}" .
+        # Tar returns non-zero exit code if (for example) a file is written to while it's reading it; this will happen
+        # with Jira log files, so we must ignore the exit code to avoid halting the run and leaving a backup file able
+        # to be ready by non-root users
+        tar -czf "${BACKUP_FILE_OUTPUT}" -C "${BACKUP_FILE_SOURCE}" . || true
         chmod 600 "${BACKUP_FILE_OUTPUT}"
 
         :: Cleaning up files older than 30 days in "${BACKUP_FILE_TARGET}"
