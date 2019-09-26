@@ -15,4 +15,10 @@ echo "${ENVIRONMENT_VARS}" | sed -E 's/^(.+)$/export \1/g' >> /etc/environment
 ENVIRONMENT_VARS_ESCAPED="$(echo "${ENVIRONMENT_VARS}" | sed -e 's/[\/&]/\\&/g' | sed ':begin;$!N;s/\n/\\n/;tbegin')"
 sed -i 's/^PATH=\(.*\)$/PATH=\1\n'"$(echo "${ENVIRONMENT_VARS_ESCAPED}")"'/g' /etc/cron.d/0hourly
 
+## If job config is specified setup /etc/cron.d/jobs
+CROND_JOB_CONFIG="${CROND_JOB_CONFIG:-}"
+if [[ -n "${CROND_JOB_CONFIG}" ]]; then
+    echo "${CROND_JOB_CONFIG}" | base64 -d > /etc/cron.d/jobs
+fi
+
 exec "$@"

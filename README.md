@@ -2,6 +2,8 @@
 
 This image is intended to have crontab configurations added by mounting files into it within `/etc/cron.d/`, `/etc/cron.hourly` or similar. Data the scripts need access to can also be mounted into the container. For example, to use this for running a nightly backup script via a systemd unit one could setup the following two files:
 
+For short cron job configurations, the environment variable `CROND_JOB_CONFIG` may be set to base64 encoded contents for the file `/etc/cron.d/jobs` when the container is started.
+
 `/etc/systemd/system/backup-jira.service`
 
     [Unit]
